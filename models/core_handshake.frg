@@ -3,8 +3,6 @@
 -- Static Entities
 
 abstract sig Node {
-    -- 这是一个动态关系：每个节点当前拥有的知识库 (Keys)
-    -- var 关键字表示它在不同的时间步会发生变化
     var knows: set Key
 }
 one sig Alice, Bob, Eve extends Node {}
@@ -72,16 +70,13 @@ pred intercept_message[m: Message] {
     Network' = Network
 }
 
--- 动作 4：无事发生 (Stutter step)
--- 在 Temporal Logic 中，必须允许系统保持不变，防止死锁
+-- Stutter step
 pred do_nothing {
     Network' = Network
     knows' = knows
 }
 
--- ==========================================
--- 系统演进规则 (System Evolution)
--- ==========================================
+-- System Evolution
 pred transition {
     -- 在任何一个时间步，以下动作中有且仅有一个发生
     (some s, r: Node, k: Key | send_message[s, r, k]) or
@@ -90,7 +85,7 @@ pred transition {
     do_nothing
 }
 
--- 定义整个系统的运行轨迹 (Trace)
+-- Trace
 pred traces {
     init
     always transition
