@@ -1,0 +1,13 @@
+# Racket/Forge 编译缓存
+compiled/
+*.zo
+*.dep
+
+# 编辑器临时文件
+*.bak
+*~
+.DS_Store
+.vscode/
+
+# 稍后你可能会导出的 Sterling 截图或视频
+visualizations/
