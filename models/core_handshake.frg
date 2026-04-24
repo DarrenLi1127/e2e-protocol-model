@@ -120,4 +120,4 @@ pred traces {
 
 run {
     traces
-} for exactly 3 Node, exactly 3 PrivateKey, exactly 3 PublicKey, 4 Message
+} for exactly 3 Node, 5 Key, 8 Message
