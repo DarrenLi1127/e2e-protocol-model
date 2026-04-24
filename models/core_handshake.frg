@@ -1,5 +1,7 @@
 #lang forge
 
+option problem_type temporal
+
 -- Static Entities
 
 abstract sig Node {
@@ -24,71 +26,96 @@ sig Message {
 }
 
 -- Temporal State)
-var sig Network in Message {}
+one sig Network {
+    var msgs: set Message
+}
+
+sig SharedSecret extends Key {}
+
+-- 用关系逻辑抽象密码学运算
+one sig CryptoMath {
+    combine: set PrivateKey -> PublicKey -> SharedSecret
+}
+
+-- 定义 DH 密钥交换的核心数学属性
+pred dh_properties {
+    -- 1. 函数约束：每一对合法的公私钥组合，必定对应唯一一个 (exactly one) 共享密钥
+    all priv: PrivateKey, pub: PublicKey |
+        one CryptoMath.combine[priv][pub]
+        
+    -- 2. 强制满足交换律：combine(PrivA, PubB) == combine(PrivB, PubA)
+    all privA, privB: PrivateKey, pubA, pubB: PublicKey |
+        (pubA.paired_with = privA and pubB.paired_with = privB) implies
+            CryptoMath.combine[privA][pubB] = CryptoMath.combine[privB][pubA]
+}
 
 
--- Initial State)
+-- Initial State
 pred init {
-    no Network
+    no Network.msgs 
+    dh_properties
     
-    -- each node knows its own private key and all public keys
     all n: Node {
         n.knows = {k: PrivateKey | k.owner = n} + PublicKey
     }
 }
 
 -- Transitions / Actions
-
 pred send_message[s: Node, r: Node, k: Key] {
     k in s.knows
     
-    -- create a new message m with sender s, receiver r, and payload k, and add it to the network
     some m: Message | {
         m.sender = s
         m.receiver = r
         m.payload = k
-        Network' = Network + m 
+        Network.msgs' = Network.msgs + m  
     }
-    
     knows' = knows 
 }
 
 pred receive_message[r: Node, m: Message] {
-    m in Network
+    m in Network.msgs 
     m.receiver = r
     
     knows' = knows + (r -> m.payload)
-    Network' = Network - m
+    Network.msgs' = Network.msgs - m  
 }
 
--- attempt to intercept a message in transit (Eve's action)
 pred intercept_message[m: Message] {
-    -- m ust be in the network for Eve to intercept it
-    m in Network
+    m in Network.msgs 
     
     knows' = knows + (Eve -> m.payload)
-    Network' = Network
+    Network.msgs' = Network.msgs 
 }
 
--- Stutter step
+pred derive_secret[n: Node, priv: PrivateKey, pub: PublicKey] {
+    priv in n.knows
+    pub in n.knows
+    
+    let ss = CryptoMath.combine[priv][pub] | {
+        knows' = knows + (n -> ss)
+    }
+    Network.msgs' = Network.msgs  
+}
+
 pred do_nothing {
-    Network' = Network
+    Network.msgs' = Network.msgs  
     knows' = knows
 }
 
 -- System Evolution
-pred transition {
+pred system_step {
     -- 在任何一个时间步，以下动作中有且仅有一个发生
     (some s, r: Node, k: Key | send_message[s, r, k]) or
     (some r: Node, m: Message | receive_message[r, m]) or
     (some m: Message | intercept_message[m]) or
+    (some n: Node, priv: PrivateKey, pub: PublicKey | derive_secret[n, priv, pub]) or 
     do_nothing
 }
-
 -- Trace
 pred traces {
     init
-    always transition
+    always system_step
 }
 
 run {
