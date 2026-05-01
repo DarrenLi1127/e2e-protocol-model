@@ -4,6 +4,8 @@
 option problem_type temporal
 option max_tracelength 7 
 
+option run_sterling "vis.js"
+
 
 abstract sig Bool {}
 one sig True, False extends Bool {}
