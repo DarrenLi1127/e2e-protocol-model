@@ -29,6 +29,18 @@ sig HMACKey extends Key {}
 
 sig Data {} 
 
+sig Signature {}
+
+one sig SignMath {
+    sign: set PrivateKey -> PublicKey -> Signature
+}
+
+pred sign_properties {
+    all priv: PrivateKey, pub: PublicKey |
+        lone SignMath.sign[priv][pub]
+}
+
+
 -- Encrypted payload
 sig Ciphertext {
     content: one Data,
@@ -82,6 +94,7 @@ pred crypto_properties {
 pred init {
     no Network.msgs 
     crypto_properties
+    sign_properties
     
     all n: Node {
         n.knows = {k: PrivateKey | k.owner = n} + PublicKey
@@ -254,6 +267,17 @@ pred eve_computes_keys {
     needs_ratchet' = needs_ratchet
 }
 
+pred node_compromised[n: Node] {
+    some priv: n.current_priv, aes: n.knows & AESKey | {
+        knows' = knows + (Eve -> priv) + (Eve -> aes)
+    }
+    Network.msgs' = Network.msgs
+    current_priv' = current_priv
+    last_other_pub' = last_other_pub
+    needs_ratchet' = needs_ratchet
+}
+
+
 -- Allow time to pass
 pred do_nothing {
     Network.msgs' = Network.msgs  
@@ -299,6 +323,19 @@ pred find_active_attack {
     -- Eve must steal a key that Bob actually uses
     eventually (some k: AESKey | k in Eve.knows and k in Bob.knows)
 }
+
+pred forward_secrecy_holds {
+    traces implies {
+        always {
+            not { some m: Message | some pub: PublicKey | spoof_key_message[m, pub] } implies {
+                eventually { some n: Node | node_compromised[n] } implies {
+                    some Node 
+                }
+            }
+        }
+    }
+}
+
 
 run { 
     find_active_attack 
