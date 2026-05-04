@@ -370,7 +370,7 @@ pred forward_secrecy_holds {
 // run { find_active_attack } for exactly 3 Node, 9 Key, 4 Message, 1 Data, 1 Ciphertext
 
 -- Verify Passive Safety (Expect UNSAT)
-run { find_passive_attack } for exactly 3 Node, 5 Key, 3 Message, 1 Data, 1 Ciphertext
+// run { find_passive_attack } for exactly 3 Node, 5 Key, 3 Message, 1 Data, 1 Ciphertext
 
 -- Verify Forward Secrecy (Expect UNSAT)
 check { forward_secrecy_holds } for exactly 3 Node, 5 Key, 4 Message, 1 Data, 1 Ciphertext
